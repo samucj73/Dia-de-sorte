@@ -15,70 +15,79 @@ st.markdown("---")
 # ---------- CACHE DE SORTEIOS ----------
 @st.cache_data(ttl=3600)
 def get_sorteios():
-    return baixar_ultimos_sorteios()
+    sorteios = baixar_ultimos_sorteios(30)
+    if not sorteios:
+        st.error("Não foi possível carregar os últimos sorteios. Tente recarregar mais tarde.")
+    return sorteios
 
 sorteios = get_sorteios()
 
 # ---------- ABAS ----------
-aba = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferência"])
+abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferência"])
 
 # ---------- ABA 1: GERADOR DE CARTÕES ----------
-with aba[0]:
+with abas[0]:
     st.markdown("### 🎯 Geração de Cartões Otimizados")
     qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=20, value=5)
     
     if st.button("🔄 Gerar Cartões"):
-        cartoes = gerar_cartoes_otimizados(qtd)
-        st.success(f"{len(cartoes)} cartões gerados com sucesso!")
-        for i, c in enumerate(cartoes, 1):
-            st.write(f"**Cartão {i}**: {c['dezenas']} | Mês da Sorte: {c['mes_da_sorte']}")
-        st.session_state["cartoes_gerados"] = cartoes
+        if sorteios:
+            cartoes = gerar_cartoes_otimizados(qtd, sorteios)  # passando sorteios para o gerador
+            st.success(f"{len(cartoes)} cartões gerados com sucesso!")
+            for i, c in enumerate(cartoes, 1):
+                st.write(f"**Cartão {i}**: {c['dezenas']} | Mês da Sorte: {c['mes_da_sorte']}")
+            st.session_state["cartoes_gerados"] = cartoes
+        else:
+            st.error("Sem dados de sorteios para gerar cartões.")
 
 # ---------- ABA 2: ANÁLISES ESTATÍSTICAS ----------
-with aba[1]:
+with abas[1]:
     st.markdown("### 📊 Análises dos Últimos 30 Concursos")
+    if sorteios:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("🔥 Dezenas Mais Frequentes")
+            freq = frequencia_dezenas(sorteios)
+            st.table(freq)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("🔥 Dezenas Mais Frequentes")
-        freq = frequencia_dezenas(sorteios)
-        st.table(freq)
+        with col2:
+            st.subheader("📅 Meses da Sorte Mais Frequentes")
+            freq_meses = frequencia_meses(sorteios)
+            st.table(freq_meses)
 
-    with col2:
-        st.subheader("📅 Meses da Sorte Mais Frequentes")
-        freq_meses = frequencia_meses(sorteios)
-        st.table(freq_meses)
+        col3, col4 = st.columns(2)
+        with col3:
+            st.subheader("➗ Pares e Ímpares")
+            distrib = pares_impares(sorteios)
+            for i, d in enumerate(distrib, 1):
+                st.write(f"Concurso {i}: {d['pares']} pares, {d['ímpares']} ímpares")
 
-    col3, col4 = st.columns(2)
-    with col3:
-        st.subheader("➗ Pares e Ímpares")
-        distrib = pares_impares(sorteios)
-        for i, d in enumerate(distrib, 1):
-            st.write(f"Concurso {i}: {d['pares']} pares, {d['ímpares']} ímpares")
+        with col4:
+            st.subheader("🧮 Soma das Dezenas")
+            soma = soma_dezenas(sorteios)
+            st.line_chart(soma)
 
-    with col4:
-        st.subheader("🧮 Soma das Dezenas")
-        soma = soma_dezenas(sorteios)
-        st.line_chart(soma)
+        st.subheader("📶 Sequências Consecutivas")
+        seqs = sequencias_consecutivas(sorteios)
+        for i, s in enumerate(seqs, 1):
+            if s:
+                st.write(f"Concurso {i}: {s}")
 
-    st.subheader("📶 Sequências Consecutivas")
-    seqs = sequencias_consecutivas(sorteios)
-    for i, s in enumerate(seqs, 1):
-        if s:
-            st.write(f"Concurso {i}: {s}")
-
-    st.subheader("🔁 Repetições em Relação ao Concurso Anterior")
-    reps = repeticao_entre_concursos(sorteios)
-    st.bar_chart(reps)
+        st.subheader("🔁 Repetições em Relação ao Concurso Anterior")
+        reps = repeticao_entre_concursos(sorteios)
+        st.bar_chart(reps)
+    else:
+        st.warning("Sem dados suficientes para análises estatísticas.")
 
 # ---------- ABA 3: CONFERÊNCIA ----------
-with aba[2]:
+with abas[2]:
     st.markdown("### ✅ Conferência de Cartões")
     
-    if "cartoes_gerados" in st.session_state:
+    if "cartoes_gerados" in st.session_state and sorteios:
         cartoes = st.session_state["cartoes_gerados"]
         st.info("Conferindo os cartões gerados com o último concurso disponível.")
-        resultados = conferir_cartoes(cartoes, concurso=None)
+        ultimo_concurso = sorteios[0] if sorteios else None
+        resultados = conferir_cartoes(cartoes, ultimo_concurso)
         for i, r in enumerate(resultados, 1):
             cor = "🟢" if r["acertos"] >= 5 else "🔴"
             st.write(f"{cor} **Cartão {i}**: {r['dezenas']} | Acertos: {r['acertos']} | "
