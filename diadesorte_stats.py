@@ -20,13 +20,16 @@ def carregar_sorteios():
 def frequencia_dezenas(sorteios):
     cont = Counter()
     for s in sorteios:
-        cont.update(map(int, s["dezenas"]))
+        if "dezenas" in s:
+            cont.update(map(int, s["dezenas"]))
     return dict(cont.most_common())
 
 def frequencia_meses(sorteios):
     cont = Counter()
     for s in sorteios:
-        cont.update(s["mes_sorte"])
+        mes = s.get("mesSorte")  # Corrigido o nome da chave
+        if mes:
+            cont[mes] += 1
     return dict(cont.most_common())
 
 def pares_impares(sorteios):
