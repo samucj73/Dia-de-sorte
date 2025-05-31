@@ -1,9 +1,3 @@
-from diadesorte_stats import (
-    carregar_sorteios, frequencia_dezenas, frequencia_meses,
-    pares_impares, soma_dezenas, sequencias_consecutivas, repeticao_entre_concursos
-)
-import random
-
 def gerar_cartoes_otimizados(qtd=5, sorteios=None):
     if sorteios is None:
         sorteios = carregar_sorteios()
@@ -52,6 +46,6 @@ def gerar_cartoes_otimizados(qtd=5, sorteios=None):
             continue
 
         mes = random.choice(meses_frequentes) if meses_frequentes else "Janeiro"
-        cartoes.append({"dezenas": dezenas, "mes_sorte": mes})
+        cartoes.append({"dezenas": dezenas, "mesSorte": mes})
 
     return cartoes
