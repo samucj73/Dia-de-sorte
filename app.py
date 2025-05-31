@@ -22,15 +22,19 @@ def get_sorteios():
 
 sorteios = get_sorteios()
 
-# ---------- EXIBIÇÃO DO ÚLTIMO CONCURSO ----------
+# ---------- EXIBIR ÚLTIMO CONCURSO ----------
 if sorteios:
     ultimo = sorteios[0]
-    dezenas = " - ".join(sorted(ultimo["dezenas"], key=lambda x: int(x)))
+    dezenas = ", ".join(ultimo.get("dezenas", []))
+    concurso = ultimo.get("concurso", "N/A")
+    data = ultimo.get("data", "Data não disponível")
+    mes = ultimo.get("mes_sorte", "Desconhecido")
+
     st.markdown("### 🗓️ Último Concurso")
     st.info(
-        f"**Concurso {ultimo['numero_concurso']}** — {ultimo['data_sorteio']}\n\n"
+        f"**Concurso {concurso}** — {data}\n\n"
         f"**Dezenas Sorteadas:** {dezenas}\n\n"
-        f"**Mês da Sorte:** {ultimo['mes_sorte']}"
+        f"**Mês da Sorte:** {mes}"
     )
 
 # ---------- ABAS ----------
@@ -46,7 +50,9 @@ with abas[0]:
             cartoes = gerar_cartoes_otimizados(qtd, sorteios)
             st.success(f"{len(cartoes)} cartões gerados com sucesso!")
             for i, c in enumerate(cartoes, 1):
-                st.write(f"**Cartão {i}**: {c['dezenas']} | Mês da Sorte: {c['mes_sorte']}")
+                dezenas = c.get("dezenas", [])
+                mes = c.get("mes_da_sorte", "Desconhecido")
+                st.write(f"**Cartão {i}**: {dezenas} | Mês da Sorte: {mes}")
             st.session_state["cartoes_gerados"] = cartoes
         else:
             st.error("Sem dados de sorteios para gerar cartões.")
@@ -71,7 +77,9 @@ with abas[1]:
             st.subheader("➗ Pares e Ímpares")
             distrib = pares_impares(sorteios)
             for i, d in enumerate(distrib, 1):
-                st.write(f"Concurso {i}: {d['pares']} pares, {d['ímpares']} ímpares")
+                pares = d.get("pares", 0)
+                impares = d.get("ímpares", 0)
+                st.write(f"Concurso {i}: {pares} pares, {impares} ímpares")
 
         with col4:
             st.subheader("🧮 Soma das Dezenas")
@@ -97,12 +105,19 @@ with abas[2]:
     if "cartoes_gerados" in st.session_state and sorteios:
         cartoes = st.session_state["cartoes_gerados"]
         st.info("Conferindo os cartões gerados com o último concurso disponível.")
-        ultimo_concurso = sorteios[0] if sorteios else None
+        ultimo_concurso = sorteios[0]
         resultados = conferir_cartoes(cartoes, ultimo_concurso)
         for i, r in enumerate(resultados, 1):
-            cor = "🟢" if r["acertos"] >= 5 else "🔴"
-            st.write(f"{cor} **Cartão {i}**: {r['dezenas']} | Acertos: {r['acertos']} | "
-                     f"Mês da Sorte: {r['mes_da_sorte']} | Mês correto: {r['mes_certo']} → **{r['faixa']}**")
+            cor = "🟢" if r.get("acertos", 0) >= 5 else "🔴"
+            dezenas = r.get("dezenas", [])
+            acertos = r.get("acertos", 0)
+            mes_cartao = r.get("mes_da_sorte", "Indefinido")
+            mes_certo = r.get("mes_certo", "Indefinido")
+            faixa = r.get("faixa", "Sem prêmio")
+            st.write(
+                f"{cor} **Cartão {i}**: {dezenas} | Acertos: {acertos} | "
+                f"Mês da Sorte: {mes_cartao} | Mês correto: {mes_certo} → **{faixa}**"
+            )
     else:
         st.warning("Gere os cartões na aba '🎯 Gerar Cartões' antes de realizar a conferência.")
 
