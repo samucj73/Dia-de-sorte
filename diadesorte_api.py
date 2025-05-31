@@ -1,21 +1,50 @@
 import requests
 
-def baixar_ultimos_sorteios(qtd=30):
+BASE_URL = "https://loteriascaixa-api.herokuapp.com/api/diadesorte/"
+
+def baixar_concurso(numero_concurso):
     """
-    Baixa os últimos 'qtd' sorteios da Dia de Sorte usando a API alternativa pública.
-    Retorna uma lista de dicionários com os dados dos concursos.
+    Baixa os dados do concurso da Dia de Sorte pelo número do concurso.
+    Retorna dict com dados do concurso ou None se não existir.
     """
-    url = "https://loteriascaixa-api.vercel.app/api/diadesorte"
+    url = f"{BASE_URL}{numero_concurso}"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         dados = response.json()
-        concursos = dados.get("concursos", [])
-        if not concursos:
-            print("Nenhum concurso encontrado na API.")
+        # Se a resposta for um dict com erro ou vazio, trate aqui
+        if 'error' in dados or not dados:
+            return None
+        return dados
+    except requests.RequestException:
+        return None
+
+def baixar_ultimos_sorteios(qtd=30):
+    """
+    Baixa os últimos 'qtd' sorteios da Dia de Sorte, retornando lista de dicts.
+    Tenta baixar do último concurso disponível para trás.
+    """
+    # Primeiro, buscar o último concurso (endpoint /latest)
+    try:
+        response = requests.get(f"{BASE_URL}latest", timeout=10)
+        response.raise_for_status()
+        ultimo = response.json()
+        ultimo_num = ultimo.get("concurso")
+        if not ultimo_num:
             return []
-        # Retorna os últimos 'qtd' concursos (ou menos se não houver tantos)
-        return concursos[:qtd]
-    except Exception as e:
-        print(f"Erro ao baixar sorteios: {e}")
+    except requests.RequestException:
         return []
+
+    sorteios = []
+    concurso_atual = ultimo_num
+
+    while len(sorteios) < qtd and concurso_atual > 0:
+        dados = baixar_concurso(concurso_atual)
+        if dados:
+            sorteios.append(dados)
+        else:
+            # Se não encontrou, pode ser concurso cancelado ou inexistente, apenas pula
+            pass
+        concurso_atual -= 1
+
+    return sorteios
