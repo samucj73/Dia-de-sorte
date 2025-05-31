@@ -22,6 +22,17 @@ def get_sorteios():
 
 sorteios = get_sorteios()
 
+# ---------- EXIBIÇÃO DO ÚLTIMO CONCURSO ----------
+if sorteios:
+    ultimo = sorteios[0]
+    dezenas = " - ".join(sorted(ultimo["dezenas"], key=lambda x: int(x)))
+    st.markdown("### 🗓️ Último Concurso")
+    st.info(
+        f"**Concurso {ultimo['numero_concurso']}** — {ultimo['data_sorteio']}\n\n"
+        f"**Dezenas Sorteadas:** {dezenas}\n\n"
+        f"**Mês da Sorte:** {ultimo['mes_sorte']}"
+    )
+
 # ---------- ABAS ----------
 abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferência"])
 
@@ -32,10 +43,10 @@ with abas[0]:
     
     if st.button("🔄 Gerar Cartões"):
         if sorteios:
-            cartoes = gerar_cartoes_otimizados(qtd, sorteios)  # passando sorteios para o gerador
+            cartoes = gerar_cartoes_otimizados(qtd, sorteios)
             st.success(f"{len(cartoes)} cartões gerados com sucesso!")
             for i, c in enumerate(cartoes, 1):
-                st.write(f"**Cartão {i}**: {c['dezenas']} | Mês da Sorte: {c['mes_da_sorte']}")
+                st.write(f"**Cartão {i}**: {c['dezenas']} | Mês da Sorte: {c['mes_sorte']}")
             st.session_state["cartoes_gerados"] = cartoes
         else:
             st.error("Sem dados de sorteios para gerar cartões.")
