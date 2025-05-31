@@ -11,13 +11,13 @@ def conferir_cartoes(cartoes, concurso=None):
         return []
 
     dezenas_sorteadas = set(map(int, concurso_ref["dezenas"]))
-    mes_sorteado = concurso_ref["mes_sorte"][0]  # Sempre uma string como "Março"
+    mes_sorteado = concurso_ref.get("mesSorte", "")  # Corrigido o nome da chave
 
     resultados = []
     for cartao in cartoes:
         dezenas_cartao = set(cartao["dezenas"])
         acertos = len(dezenas_cartao.intersection(dezenas_sorteadas))
-        mes_certo = cartao["mes_da_sorte"] == mes_sorteado
+        mes_certo = cartao.get("mesSorte", "") == mes_sorteado
 
         faixa = {
             7: "🏆 1º prêmio (7 acertos)",
@@ -27,7 +27,7 @@ def conferir_cartoes(cartoes, concurso=None):
 
         resultados.append({
             "dezenas": sorted(cartao["dezenas"]),
-            "mes_da_sorte": cartao["mes_da_sorte"],
+            "mesSorte": cartao.get("mesSorte", ""),
             "acertos": acertos,
             "mes_certo": mes_certo,
             "faixa": faixa
