@@ -1,3 +1,9 @@
+import random
+from diadesorte_stats import (
+    carregar_sorteios, frequencia_dezenas, frequencia_meses,
+    pares_impares, soma_dezenas, sequencias_consecutivas, repeticao_entre_concursos
+)
+
 def gerar_cartoes_otimizados(qtd=5, sorteios=None):
     if sorteios is None:
         sorteios = carregar_sorteios()
@@ -16,7 +22,6 @@ def gerar_cartoes_otimizados(qtd=5, sorteios=None):
 
     ultimas_dezenas = list(map(int, sorteios[0]["dezenas"]))
 
-    todas_dezenas = list(range(1, 32))
     dezenas_frequentes = sorted(freq_dezenas, key=freq_dezenas.get, reverse=True)[:20]
     meses_frequentes = list(freq_meses.keys())
 
@@ -37,7 +42,6 @@ def gerar_cartoes_otimizados(qtd=5, sorteios=None):
         if len(set(dezenas) & set(ultimas_dezenas)) > 4:
             continue
 
-        # Limita sequências consecutivas a no máximo 2
         consecutivas = 0
         for i in range(1, 7):
             if dezenas[i] == dezenas[i - 1] + 1:
