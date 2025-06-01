@@ -40,7 +40,7 @@ abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferência"])
 # ---------- ABA 1: GERADOR DE CARTÕES ----------
 with abas[0]:
     st.markdown("### 🎯 Geração de Cartões Otimizados")
-    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=20, value=5)
+    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=520, value=5)
     
     if st.button("🔄 Gerar Cartões"):
         if sorteios:
