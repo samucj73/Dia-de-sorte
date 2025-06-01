@@ -95,22 +95,25 @@ with abas[1]:
 with abas[2]:
     st.markdown("### ✅ Conferência de Cartões")
     st.write("Clique no botão abaixo para conferir os cartões gerados com o último concurso disponível.")
-
     if st.button("Conferir Agora"):
-        cartoes = gerar_cartoes_otimizados(5, sorteios)  # gere ou use os cartões armazenados
-        resultados = conferir_cartoes(cartoes)
+        if "cartoes_gerados" in st.session_state and st.session_state["cartoes_gerados"]:
+            cartoes = st.session_state["cartoes_gerados"]
+            resultados = conferir_cartoes(cartoes)
 
-        for i, r in enumerate(resultados, 1):
-            st.markdown(f"""
-            ---
-            ### 🃏 Cartão {i}
-            - **Dezenas:** `{r['dezenas']}`
-            - **Mês da Sorte:** `{r['mesSorte']}`
-            - 🎯 **Acertos:** `{r['acertos']}`
-            - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
-            - 🏅 **Faixa:** `{r['faixa']}`
-            """)
+            for i, r in enumerate(resultados, 1):
+                st.markdown(f"""
+                ---
+                ### 🃏 Cartão {i}
+                - **Dezenas:** `{r['dezenas']}`
+                - **Mês da Sorte:** `{r.get('mesSorte', 'Desconhecido')}`
+                - 🎯 **Acertos:** `{r['acertos']}`
+                - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
+                - 🏅 **Faixa:** `{r['faixa']}`
+                """)
+        else:
+            st.warning("Nenhum cartão gerado encontrado. Vá até a aba '🎯 Gerar Cartões' e gere seus jogos antes de conferir.")
 
+    
     
 
 # ---------- RODAPÉ ----------
