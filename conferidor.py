@@ -11,7 +11,7 @@ def conferir_cartoes(cartoes, concurso=None):
         return []
 
     dezenas_sorteadas = set(map(int, concurso_ref["dezenas"]))
-    mes_sorteado = concurso_ref.get("mesSorte", "")  # Corrigido o nome da chave
+    mes_sorteado = concurso_ref.get("mesSorte", "")
 
     resultados = []
     for cartao in cartoes:
@@ -38,9 +38,19 @@ def conferir_cartoes(cartoes, concurso=None):
 # Exemplo de uso
 if __name__ == "__main__":
     from gerador_cartoes import gerar_cartoes_otimizados
+    from gerador_inverso import gerar_cartoes_inversos
+    from diadesorte_stats import carregar_sorteios
 
-    cartoes = gerar_cartoes_otimizados(5)
-    resultados = conferir_cartoes(cartoes)
+    sorteios = carregar_sorteios()
 
-    for i, r in enumerate(resultados, 1):
+    print("\n✅ Conferência dos cartões otimizados:")
+    cartoes_otimizados = gerar_cartoes_otimizados(qtd=5, sorteios=sorteios)
+    resultados_otimizados = conferir_cartoes(cartoes_otimizados)
+    for i, r in enumerate(resultados_otimizados, 1):
+        print(f"Cartão {i}: {r['dezenas']} | Acertos: {r['acertos']} | Mês certo: {r['mes_certo']} → {r['faixa']}")
+
+    print("\n🌀 Conferência dos cartões inversos:")
+    cartoes_inversos = gerar_cartoes_inversos(qtd=5, sorteios=sorteios)
+    resultados_inversos = conferir_cartoes(cartoes_inversos)
+    for i, r in enumerate(resultados_inversos, 1):
         print(f"Cartão {i}: {r['dezenas']} | Acertos: {r['acertos']} | Mês certo: {r['mes_certo']} → {r['faixa']}")
