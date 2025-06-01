@@ -105,7 +105,7 @@ with abas[2]:
             ---
             ### 🃏 Cartão {i}
             - **Dezenas:** `{r['dezenas']}`
-            - **Mês da Sorte:** `{r['mes_da_sorte']}`
+            - **Mês da Sorte:** `{r['mesSorte']}`
             - 🎯 **Acertos:** `{r['acertos']}`
             - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
             - 🏅 **Faixa:** `{r['faixa']}`
