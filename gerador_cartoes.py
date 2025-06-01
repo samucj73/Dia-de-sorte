@@ -17,26 +17,24 @@ def simular_acertos(cartao, sorteios):
     return sum(acertos) / len(acertos)
 
 def gerar_cartao(frequencia_dezenas, dezenas_validas, meses_validos):
-    # Seleciona 7 dezenas das mais frequentes, equilibrando entre pares/ímpares e distribuição
     dezenas = random.sample(dezenas_validas, 7)
     mes = random.choice(meses_validos)
     return {"dezenas": sorted(dezenas), "mesSorte": mes}
 
-def gerar_cartoes_otimizados(qtd, sorteios):
+def gerar_cartoes_otimizados(qtd, sorteios, desempenho_minimo=4.5, max_tentativas=10000):
     freq_dezenas, freq_meses = calcular_frequencias(sorteios)
     dezenas_validas = [d for d, _ in freq_dezenas.most_common(20)]  # Top 20 mais frequentes
     meses_validos = [m for m, _ in freq_meses.most_common()]
 
     cartoes_gerados = []
     tentativas = 0
-    max_tentativas = qtd * 100
 
     while len(cartoes_gerados) < qtd and tentativas < max_tentativas:
         tentativas += 1
         cartao = gerar_cartao(freq_dezenas, dezenas_validas, meses_validos)
         media_acertos = simular_acertos(cartao, sorteios)
 
-        if media_acertos >= 4.5 and cartao not in cartoes_gerados:
+        if media_acertos >= desempenho_minimo and cartao not in cartoes_gerados:
             cartoes_gerados.append(cartao)
 
     return cartoes_gerados
