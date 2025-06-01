@@ -116,7 +116,6 @@ with abas[1]:
         st.warning("Sem dados suficientes para análises estatísticas.")
 
 # ---------- ABA 3: CONFERÊNCIA ----------
-# ---------- ABA 3: CONFERÊNCIA ----------
 with abas[2]:
     st.markdown("### ✅ Conferência de Cartões")
     st.write("Clique no botão abaixo para conferir os cartões gerados com o último concurso disponível.")
