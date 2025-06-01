@@ -1,55 +1,40 @@
 import random
-from collections import Counter
 
-def calcular_media_acertos(cartao, sorteios):
-    acertos = []
-    dezenas_cartao = set(cartao["dezenas"])
-    for sorteio in sorteios[:20]:  # últimos 20 concursos
-        dezenas_sorteadas = set(map(int, sorteio["dezenas"]))
-        acertos.append(len(dezenas_cartao & dezenas_sorteadas))
-    return sum(acertos) / len(acertos) if acertos else 0
+def gerar_cartoes_otimizados(qtd, concursos, tentativas=10000, desempenho_minimo=5.0):
+    todos_cartoes = []
+    dezenas_anteriores = [set(c["dezenas"]) for c in concursos]
+    meses_anteriores = [c.get("mesSorte", "") for c in concursos]
+    dezenas_validas = [str(i).zfill(2) for i in range(1, 32)]
+    meses_validos = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ]
 
-def gerar_cartoes_otimizados(qtd, sorteios):
-    if not sorteios:
+    def simular_acertos(cartao_dezenas, mes_sorte):
+        acertos = []
+        for i, c in enumerate(concursos[:20]):  # simula nos últimos 20 concursos
+            dezenas_sorteadas = set(c["dezenas"])
+            acerto = len(dezenas_sorteadas.intersection(cartao_dezenas))
+            if mes_sorte == c.get("mesSorte", ""):
+                acerto += 1  # bônus se acertar o mês
+            acertos.append(acerto)
+        return sum(acertos) / len(acertos)
+
+    # Gerar muitos cartões e filtrar os melhores
+    for _ in range(tentativas):
+        dezenas = sorted(random.sample(dezenas_validas, 7))
+        mes_sorte = random.choice(meses_validos)
+        desempenho = simular_acertos(set(dezenas), mes_sorte)
+        if desempenho >= desempenho_minimo:
+            todos_cartoes.append({
+                "dezenas": dezenas,
+                "mesSorte": mes_sorte,
+                "desempenho": desempenho
+            })
+
+    if not todos_cartoes:
         return []
 
-    todas_dezenas = list(range(1, 32))
-    meses_freq = Counter([s["mesSorte"] for s in sorteios])
-    meses_comuns = [mes for mes, _ in meses_freq.most_common(6)]
-
-    # Excluir cartões já sorteados
-    cartoes_premiados = {tuple(sorted(map(int, s["dezenas"]))) for s in sorteios}
-
-    # Frequência das dezenas
-    freq = Counter()
-    for s in sorteios:
-        freq.update(map(int, s["dezenas"]))
-
-    dezenas_mais_frequentes = [d for d, _ in freq.most_common(20)]
-    dezenas_menos_frequentes = [d for d, _ in freq.most_common()][-12:]
-
-    cartoes_validos = []
-    tentativas = 0
-    max_tentativas = qtd * 8000
-
-    while len(cartoes_validos) < qtd and tentativas < max_tentativas:
-        tentativas += 1
-        dezenas = sorted(random.sample(todas_dezenas, 7))
-        if tuple(dezenas) in cartoes_premiados:
-            continue
-
-        # Filtros estatísticos
-        if not (3 <= sum(1 for d in dezenas if d % 2 == 0) <= 5):  # pares
-            continue
-        if not (100 <= sum(dezenas) <= 170):  # soma total
-            continue
-        if len(set(dezenas) & set(dezenas_menos_frequentes)) < 3:  # ao menos 3 dezenas "frias"
-            continue
-
-        mes_da_sorte = random.choice(meses_comuns)
-        cartao = {"dezenas": dezenas, "mes_da_sorte": mes_da_sorte}
-        media_acertos = calcular_media_acertos(cartao, sorteios)
-        if media_acertos >= 4:  # exige média mínima de 4 acertos simulados
-            cartoes_validos.append(cartao)
-
-    return cartoes_validos
+    # Ordena os cartões por desempenho e retorna os melhores
+    todos_cartoes.sort(key=lambda x: x["desempenho"], reverse=True)
+    return todos_cartoes[:qtd]
