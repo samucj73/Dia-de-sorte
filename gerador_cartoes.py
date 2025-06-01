@@ -11,7 +11,7 @@ def calcular_frequencias(sorteios):
 
 def simular_acertos(cartao, sorteios):
     acertos = []
-    for s in sorteios[:20]:  # Simula nos últimos 20 concursos
+    for s in sorteios[:200]:  # Simula nos últimos 20 concursos
         dezenas_sorteadas = set(s['dezenas'])
         acertos.append(len(set(cartao['dezenas']) & dezenas_sorteadas))
     return sum(acertos) / len(acertos)
