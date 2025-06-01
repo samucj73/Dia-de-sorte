@@ -1,6 +1,7 @@
 import streamlit as st
 from gerador_cartoes import gerar_cartoes_otimizados_adaptativo
-from gerador_inverso import gerar_cartoes_inversos  # Importação do módulo inverso
+from gerador_inverso import gerar_cartoes_inversos  # Módulo inverso já existente
+from gerador_inverso_invertido import gerar_cartoes_inversos_invertidos  # NOVO módulo inverso invertido
 from diadesorte_stats import (
     frequencia_dezenas, frequencia_meses, pares_impares,
     soma_dezenas, sequencias_consecutivas, repeticao_entre_concursos
@@ -76,6 +77,23 @@ with abas[0]:
         else:
             st.error("Sem dados de sorteios para gerar cartões.")
 
+    # NOVA SEÇÃO PARA GERAÇÃO INVERSA INVERTIDA
+    st.markdown("### 🔄 Geração Inversa Invertida (nova lógica)")
+    qtd_inv_inv = st.number_input("Quantos cartões inversos invertidos deseja gerar?", min_value=1, max_value=20, value=5, key="inv_inv")
+
+    if st.button("🔃 Gerar Cartões Inversos Invertidos"):
+        if sorteios:
+            cartoes_inv_inv = gerar_cartoes_inversos_invertidos(qtd_inv_inv, sorteios)
+            if cartoes_inv_inv:
+                st.success(f"{len(cartoes_inv_inv)} cartões gerados com sucesso!")
+                for i, c in enumerate(cartoes_inv_inv, 1):
+                    st.write(f"**Cartão Inverso Invertido {i}**: {c['dezenas']} | Mês da Sorte: {c['mesSorte']}")
+                st.session_state["cartoes_inversos_invertidos"] = cartoes_inv_inv
+            else:
+                st.warning("⚠️ Nenhum cartão gerado com os critérios definidos.")
+        else:
+            st.error("Sem dados de sorteios para gerar cartões.")
+
 # ---------- ABA 2: ANÁLISES ESTATÍSTICAS ----------
 with abas[1]:
     st.markdown("### 📊 Análises dos Últimos Concursos")
@@ -121,7 +139,8 @@ with abas[2]:
     st.write("Clique no botão abaixo para conferir os cartões gerados com o último concurso disponível.")
     if st.button("Conferir Agora"):
         if ("cartoes_gerados" in st.session_state and st.session_state["cartoes_gerados"]) or \
-           ("cartoes_inversos" in st.session_state and st.session_state["cartoes_inversos"]):
+           ("cartoes_inversos" in st.session_state and st.session_state["cartoes_inversos"]) or \
+           ("cartoes_inversos_invertidos" in st.session_state and st.session_state["cartoes_inversos_invertidos"]):
 
             # Conferência cartões otimizados
             if "cartoes_gerados" in st.session_state and st.session_state["cartoes_gerados"]:
@@ -146,6 +165,21 @@ with abas[2]:
                     st.markdown(f"""
                     ---
                     ### 🃏 Cartão Inverso {i}
+                    - **Dezenas:** `{r['dezenas']}`
+                    - **Mês da Sorte:** `{r.get('mesSorte', 'Desconhecido')}`
+                    - 🎯 **Acertos:** `{r['acertos']}`
+                    - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
+                    - 🏅 **Faixa:** `{r['faixa']}`
+                    """)
+
+            # Conferência cartões inversos invertidos (NOVO)
+            if "cartoes_inversos_invertidos" in st.session_state and st.session_state["cartoes_inversos_invertidos"]:
+                st.markdown("#### Cartões Inversos Invertidos")
+                resultados_inv_inv = conferir_cartoes(st.session_state["cartoes_inversos_invertidos"])
+                for i, r in enumerate(resultados_inv_inv, 1):
+                    st.markdown(f"""
+                    ---
+                    ### 🃏 Cartão Inverso Invertido {i}
                     - **Dezenas:** `{r['dezenas']}`
                     - **Mês da Sorte:** `{r.get('mesSorte', 'Desconhecido')}`
                     - 🎯 **Acertos:** `{r['acertos']}`
