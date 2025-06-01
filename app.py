@@ -1,5 +1,6 @@
 import streamlit as st
-from gerador_cartoes import gerar_cartoes_otimizados_adaptativo as gerar_cartoes_otimizados
+from gerador_cartoes import gerar_cartoes_otimizados
+from gerador_inverso import gerar_cartoes_inversos  # Importação do módulo inverso
 from diadesorte_stats import (
     frequencia_dezenas, frequencia_meses, pares_impares,
     soma_dezenas, sequencias_consecutivas, repeticao_entre_concursos
@@ -42,7 +43,7 @@ abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferência"])
 # ---------- ABA 1: GERADOR DE CARTÕES ----------
 with abas[0]:
     st.markdown("### 🎯 Geração de Cartões Otimizados")
-    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=200, value=5)
+    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=20, value=5)
 
     desempenho_minimo = st.slider("Desempenho mínimo (média de acertos nos últimos concursos)", 3.0, 6.0, 4.5, 0.1)
 
@@ -56,6 +57,22 @@ with abas[0]:
                 st.session_state["cartoes_gerados"] = cartoes
             else:
                 st.warning("⚠️ Nenhum cartão gerado com os critérios definidos. Tente reduzir o desempenho mínimo ou aumentar a quantidade de concursos analisados.")
+        else:
+            st.error("Sem dados de sorteios para gerar cartões.")
+
+    st.markdown("### 🌀 Geração Inversa (baseada nas menos frequentes)")
+    qtd_inv = st.number_input("Quantos cartões inversos deseja gerar?", min_value=1, max_value=20, value=5, key="inv")
+
+    if st.button("🔁 Gerar Cartões Inversos"):
+        if sorteios:
+            cartoes_inv = gerar_cartoes_inversos(qtd_inv, sorteios)
+            if cartoes_inv:
+                st.success(f"{len(cartoes_inv)} cartões gerados com sucesso!")
+                for i, c in enumerate(cartoes_inv, 1):
+                    st.write(f"**Cartão Inverso {i}**: {c['dezenas']} | Mês da Sorte: {c['mesSorte']}")
+                st.session_state["cartoes_inversos"] = cartoes_inv
+            else:
+                st.warning("⚠️ Nenhum cartão gerado com os critérios definidos.")
         else:
             st.error("Sem dados de sorteios para gerar cartões.")
 
