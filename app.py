@@ -116,24 +116,43 @@ with abas[1]:
         st.warning("Sem dados suficientes para análises estatísticas.")
 
 # ---------- ABA 3: CONFERÊNCIA ----------
+# ---------- ABA 3: CONFERÊNCIA ----------
 with abas[2]:
     st.markdown("### ✅ Conferência de Cartões")
     st.write("Clique no botão abaixo para conferir os cartões gerados com o último concurso disponível.")
     if st.button("Conferir Agora"):
-        if "cartoes_gerados" in st.session_state and st.session_state["cartoes_gerados"]:
-            cartoes = st.session_state["cartoes_gerados"]
-            resultados = conferir_cartoes(cartoes)
+        if ("cartoes_gerados" in st.session_state and st.session_state["cartoes_gerados"]) or \
+           ("cartoes_inversos" in st.session_state and st.session_state["cartoes_inversos"]):
 
-            for i, r in enumerate(resultados, 1):
-                st.markdown(f"""
-                ---
-                ### 🃏 Cartão {i}
-                - **Dezenas:** `{r['dezenas']}`
-                - **Mês da Sorte:** `{r.get('mesSorte', 'Desconhecido')}`
-                - 🎯 **Acertos:** `{r['acertos']}`
-                - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
-                - 🏅 **Faixa:** `{r['faixa']}`
-                """)
+            # Conferência cartões otimizados
+            if "cartoes_gerados" in st.session_state and st.session_state["cartoes_gerados"]:
+                st.markdown("#### Cartões Otimizados")
+                resultados = conferir_cartoes(st.session_state["cartoes_gerados"])
+                for i, r in enumerate(resultados, 1):
+                    st.markdown(f"""
+                    ---
+                    ### 🃏 Cartão Otimizado {i}
+                    - **Dezenas:** `{r['dezenas']}`
+                    - **Mês da Sorte:** `{r.get('mesSorte', 'Desconhecido')}`
+                    - 🎯 **Acertos:** `{r['acertos']}`
+                    - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
+                    - 🏅 **Faixa:** `{r['faixa']}`
+                    """)
+
+            # Conferência cartões inversos
+            if "cartoes_inversos" in st.session_state and st.session_state["cartoes_inversos"]:
+                st.markdown("#### Cartões Inversos")
+                resultados_inv = conferir_cartoes(st.session_state["cartoes_inversos"])
+                for i, r in enumerate(resultados_inv, 1):
+                    st.markdown(f"""
+                    ---
+                    ### 🃏 Cartão Inverso {i}
+                    - **Dezenas:** `{r['dezenas']}`
+                    - **Mês da Sorte:** `{r.get('mesSorte', 'Desconhecido')}`
+                    - 🎯 **Acertos:** `{r['acertos']}`
+                    - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
+                    - 🏅 **Faixa:** `{r['faixa']}`
+                    """)
         else:
             st.warning("Nenhum cartão gerado encontrado. Vá até a aba '🎯 Gerar Cartões' e gere seus jogos antes de conferir.")
 
