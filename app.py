@@ -29,6 +29,7 @@ if sorteios:
     st.markdown(f"**Concurso:** {ultimo['concurso']}")
     st.markdown(f"**Data:** {ultimo['data']}")
     st.markdown(f"**Dezenas sorteadas:** {', '.join(ultimo['dezenas'])}")
+    # Corrigido para chave 'mesSorte' como no seu dado
     st.markdown(f"**Mês da Sorte:** {ultimo.get('mesSorte', 'Mês desconhecido')}")
 
 st.markdown("---")
@@ -46,6 +47,7 @@ with abas[0]:
             cartoes = gerar_cartoes_otimizados(qtd, sorteios)  # passando sorteios para o gerador
             st.success(f"{len(cartoes)} cartões gerados com sucesso!")
             for i, c in enumerate(cartoes, 1):
+                # Note que na geração você usa 'mesSorte' e não 'mes_da_sorte'
                 st.write(f"**Cartão {i}**: {c['dezenas']} | Mês da Sorte: {c['mesSorte']}")
             st.session_state["cartoes_gerados"] = cartoes
         else:
@@ -101,20 +103,18 @@ with abas[2]:
             resultados = conferir_cartoes(cartoes)
 
             for i, r in enumerate(resultados, 1):
+                # Aqui garantimos o uso correto do mês da sorte retornado pelo conferidor
                 st.markdown(f"""
                 ---
                 ### 🃏 Cartão {i}
                 - **Dezenas:** `{r['dezenas']}`
-                - **Mês da Sorte:** `{r.get('mesSorte', 'Desconhecido')}`
+                - **Mês da Sorte:** `{r.get('mes_da_sorte', 'Desconhecido')}`
                 - 🎯 **Acertos:** `{r['acertos']}`
                 - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
                 - 🏅 **Faixa:** `{r['faixa']}`
                 """)
         else:
             st.warning("Nenhum cartão gerado encontrado. Vá até a aba '🎯 Gerar Cartões' e gere seus jogos antes de conferir.")
-
-    
-    
 
 # ---------- RODAPÉ ----------
 st.markdown("---")
