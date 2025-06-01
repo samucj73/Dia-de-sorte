@@ -1,5 +1,5 @@
 import streamlit as st
-from gerador_cartoes import gerar_cartoes_otimizados
+from gerador_cartoes import gerar_cartoes_otimizados_adaptativo
 from gerador_inverso import gerar_cartoes_inversos  # Importação do módulo inverso
 from diadesorte_stats import (
     frequencia_dezenas, frequencia_meses, pares_impares,
