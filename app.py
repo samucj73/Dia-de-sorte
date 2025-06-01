@@ -12,15 +12,15 @@ st.set_page_config(page_title="Dia de Sorte Inteligente", layout="wide")
 st.markdown("<h1 style='text-align: center;'>💡 Dia de Sorte Inteligente</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ---------- SELEÇÃO DA QUANTIDADE DE CONCURSOS ----------
-qtd_concursos = st.slider("Quantos concursos deseja carregar para análises e geração?", min_value=30, max_value=300, value=50, step=10)
+# ---------- SLIDER DE CONCURSOS ----------
+qtd_concursos = st.slider("Quantos concursos deseja carregar para análise?", min_value=30, max_value=300, value=100, step=10)
 
 # ---------- CACHE DE SORTEIOS ----------
 @st.cache_data(ttl=3600)
 def get_sorteios(n):
     sorteios = baixar_ultimos_sorteios(n)
     if not sorteios:
-        st.error("Não foi possível carregar os últimos sorteios. Tente recarregar mais tarde.")
+        st.error("Não foi possível carregar os sorteios. Tente novamente mais tarde.")
     return sorteios
 
 sorteios = get_sorteios(qtd_concursos)
@@ -32,7 +32,7 @@ if sorteios:
     st.markdown(f"**Concurso:** {ultimo['concurso']}")
     st.markdown(f"**Data:** {ultimo['data']}")
     st.markdown(f"**Dezenas sorteadas:** {', '.join(ultimo['dezenas'])}")
-    st.markdown(f"**Mês da Sorte:** {ultimo.get('mesSorte', 'Mês desconhecido')}")
+    st.markdown(f"**Mês da Sorte:** {ultimo.get('mesSorte', 'Desconhecido')}")
 
 st.markdown("---")
 
@@ -42,18 +42,20 @@ abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferência"])
 # ---------- ABA 1: GERADOR DE CARTÕES ----------
 with abas[0]:
     st.markdown("### 🎯 Geração de Cartões Otimizados")
-    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=1000, value=5)
-    
+    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=20, value=5)
+
+    desempenho_minimo = st.slider("Desempenho mínimo (média de acertos nos últimos concursos)", 3.0, 6.0, 4.5, 0.1)
+
     if st.button("🔄 Gerar Cartões"):
         if sorteios:
-            cartoes = gerar_cartoes_otimizados(qtd, sorteios)
+            cartoes = gerar_cartoes_otimizados(qtd, sorteios, desempenho_minimo=desempenho_minimo, max_tentativas=30000)
             if cartoes:
                 st.success(f"{len(cartoes)} cartões gerados com sucesso!")
                 for i, c in enumerate(cartoes, 1):
                     st.write(f"**Cartão {i}**: {c['dezenas']} | Mês da Sorte: {c['mesSorte']}")
                 st.session_state["cartoes_gerados"] = cartoes
             else:
-                st.warning("Nenhum cartão gerado com os critérios definidos. Tente aumentar o número de concursos analisados.")
+                st.warning("⚠️ Nenhum cartão gerado com os critérios definidos. Tente reduzir o desempenho mínimo ou aumentar a quantidade de concursos analisados.")
         else:
             st.error("Sem dados de sorteios para gerar cartões.")
 
