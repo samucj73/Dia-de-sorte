@@ -1,5 +1,5 @@
 import streamlit as st
-from gerador_cartoes import gerar_cartoes_otimizados
+from gerador_cartoes import gerar_cartoes_otimizados_adaptativo as gerar_cartoes_otimizados
 from diadesorte_stats import (
     frequencia_dezenas, frequencia_meses, pares_impares,
     soma_dezenas, sequencias_consecutivas, repeticao_entre_concursos
@@ -42,7 +42,7 @@ abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferência"])
 # ---------- ABA 1: GERADOR DE CARTÕES ----------
 with abas[0]:
     st.markdown("### 🎯 Geração de Cartões Otimizados")
-    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=20, value=5)
+    qtd = st.number_input("Quantos cartões deseja gerar?", min_value=1, max_value=200, value=5)
 
     desempenho_minimo = st.slider("Desempenho mínimo (média de acertos nos últimos concursos)", 3.0, 6.0, 4.5, 0.1)
 
