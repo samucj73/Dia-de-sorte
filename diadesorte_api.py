@@ -19,7 +19,7 @@ def baixar_concurso(numero_concurso):
     except requests.RequestException:
         return None
 
-def baixar_ultimos_sorteios(qtd=30):
+def baixar_ultimos_sorteios(qtd=300):
     """
     Baixa os últimos 'qtd' sorteios da Dia de Sorte, retornando lista de dicts.
     Tenta baixar do último concurso disponível para trás.
