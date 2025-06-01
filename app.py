@@ -91,13 +91,13 @@ with abas[1]:
         st.warning("Sem dados suficientes para análises estatísticas.")
 
 # ---------- ABA 3: CONFERÊNCIA ----------
+
 with abas[2]:
-    elif aba == "🎯 Conferência":
-    st.header("🎯 Conferência de Cartões")
+    st.markdown("### ✅ Conferência de Cartões")
     st.write("Clique no botão abaixo para conferir os cartões gerados com o último concurso disponível.")
 
     if st.button("Conferir Agora"):
-        cartoes = gerar_cartoes_otimizados(5, sorteios)  # gere ou carregue os cartões como preferir
+        cartoes = gerar_cartoes_otimizados(5, sorteios)  # gere ou use os cartões armazenados
         resultados = conferir_cartoes(cartoes)
 
         for i, r in enumerate(resultados, 1):
@@ -111,7 +111,6 @@ with abas[2]:
             - 🏅 **Faixa:** `{r['faixa']}`
             """)
 
-    
     
 
 # ---------- RODAPÉ ----------
