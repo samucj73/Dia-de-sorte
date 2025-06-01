@@ -49,7 +49,7 @@ with abas[0]:
 
     if st.button("🔄 Gerar Cartões"):
         if sorteios:
-            cartoes = gerar_cartoes_otimizados(qtd, sorteios, desempenho_minimo=desempenho_minimo, max_tentativas=30000)
+            cartoes = gerar_cartoes_otimizados_adaptativo(qtd, sorteios, desempenho_minimo=desempenho_minimo, max_tentativas=30000)
             if cartoes:
                 st.success(f"{len(cartoes)} cartões gerados com sucesso!")
                 for i, c in enumerate(cartoes, 1):
