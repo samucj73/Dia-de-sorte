@@ -30,7 +30,7 @@ def gerar_cartoes_otimizados(qtd, sorteios):
 
     cartoes_validos = []
     tentativas = 0
-    max_tentativas = qtd * 80
+    max_tentativas = qtd * 8000
 
     while len(cartoes_validos) < qtd and tentativas < max_tentativas:
         tentativas += 1
