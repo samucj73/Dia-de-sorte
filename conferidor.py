@@ -3,7 +3,7 @@ from diadesorte_stats import carregar_sorteios
 def conferir_cartoes(cartoes, concurso=None):
     sorteios = carregar_sorteios()
 
-    # Se nenhum concurso for passado, usa o último
+    # Usa o último concurso se nenhum for passado
     concurso_ref = sorteios[0] if concurso is None else next((c for c in sorteios if c["concurso"] == concurso), None)
 
     if not concurso_ref:
@@ -15,7 +15,8 @@ def conferir_cartoes(cartoes, concurso=None):
 
     resultados = []
     for cartao in cartoes:
-        dezenas_cartao = set(cartao["dezenas"])
+        # Garante que as dezenas do cartão são ints
+        dezenas_cartao = set(int(d) for d in cartao["dezenas"])
         acertos = len(dezenas_cartao.intersection(dezenas_sorteadas))
         mes_certo = cartao.get("mesSorte", "") == mes_sorteado
 
@@ -26,7 +27,7 @@ def conferir_cartoes(cartoes, concurso=None):
         }.get(acertos, "Sem premiação")
 
         resultados.append({
-            "dezenas": sorted(cartao["dezenas"]),
+            "dezenas": sorted(dezenas_cartao),
             "mesSorte": cartao.get("mesSorte", ""),
             "acertos": acertos,
             "mes_certo": mes_certo,
@@ -35,7 +36,7 @@ def conferir_cartoes(cartoes, concurso=None):
 
     return resultados
 
-# Exemplo de uso
+# Teste rápido se rodar direto
 if __name__ == "__main__":
     from gerador_cartoes import gerar_cartoes_otimizados
     from gerador_inverso import gerar_cartoes_inversos
