@@ -92,19 +92,27 @@ with abas[1]:
 
 # ---------- ABA 3: CONFERÊNCIA ----------
 with abas[2]:
-    st.markdown("### ✅ Conferência de Cartões")
-    
-    if "cartoes_gerados" in st.session_state and sorteios:
-        cartoes = st.session_state["cartoes_gerados"]
-        st.info("Conferindo os cartões gerados com o último concurso disponível.")
-        ultimo_concurso = sorteios[0] if sorteios else None
-        resultados = conferir_cartoes(cartoes, ultimo_concurso)
+    elif aba == "🎯 Conferência":
+    st.header("🎯 Conferência de Cartões")
+    st.write("Clique no botão abaixo para conferir os cartões gerados com o último concurso disponível.")
+
+    if st.button("Conferir Agora"):
+        cartoes = gerar_cartoes_otimizados(5, sorteios)  # gere ou carregue os cartões como preferir
+        resultados = conferir_cartoes(cartoes)
+
         for i, r in enumerate(resultados, 1):
-            cor = "🟢" if r["acertos"] >= 5 else "🔴"
-            st.write(f"{cor} **Cartão {i}**: {r['dezenas']} | Acertos: {r['acertos']} | "
-                     f"Mês da Sorte: {r['mesSorte']} | Mês correto: {r['mes_certo']} → **{r['faixa']}**")
-    else:
-        st.warning("Gere os cartões na aba '🎯 Gerar Cartões' antes de realizar a conferência.")
+            st.markdown(f"""
+            ---
+            ### 🃏 Cartão {i}
+            - **Dezenas:** `{r['dezenas']}`
+            - **Mês da Sorte:** `{r['mes_da_sorte']}`
+            - 🎯 **Acertos:** `{r['acertos']}`
+            - 📅 **Mês certo:** {"✅ Sim" if r['mes_certo'] else "❌ Não"}
+            - 🏅 **Faixa:** `{r['faixa']}`
+            """)
+
+    
+    
 
 # ---------- RODAPÉ ----------
 st.markdown("---")
