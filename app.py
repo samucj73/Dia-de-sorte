@@ -9,6 +9,7 @@ import json
 import random
 from abc import ABC, abstractmethod
 from pathlib import Path
+from estrategia_oculta_top25 import EstrategiaOcultaTop25
 
 # ===== IMPORTS DO ECOSSISTEMA =====
 from diadesorte_api import baixar_ultimos_sorteios
@@ -236,6 +237,7 @@ class StreamlitApp:
                 [
                     EstrategiaOtimizada(),
                     EstrategiaOculta(),
+                    EstrategiaOcultaTop25(),
                     EstrategiaHibridaElite(),
                     EstrategiaInversa(),
                     EstrategiaInversaInvertida()
