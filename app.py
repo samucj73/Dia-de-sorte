@@ -1,15 +1,16 @@
 # =========================================================
-# DIA DE SORTE INTELIGENTE - ARQUIVO ÚNICO
-# OO | Produção | Cache corrigido | Download concursos
+# DIA DE SORTE INTELIGENTE - MOTOR ELITE
+# OO | Strategy | Padrões Ocultos | Otimização | Streamlit
 # =========================================================
 
 import streamlit as st
 import pandas as pd
-from abc import ABC, abstractmethod
 import json
+import random
+from abc import ABC, abstractmethod
 from pathlib import Path
 
-# ===== IMPORTS DO SEU ECOSSISTEMA =====
+# ===== IMPORTS DO ECOSSISTEMA =====
 from diadesorte_api import baixar_ultimos_sorteios
 from diadesorte_stats import (
     frequencia_dezenas, frequencia_meses,
@@ -20,46 +21,39 @@ from gerador_cartoes import gerar_cartoes_otimizados_adaptativo
 from gerador_inverso import gerar_cartoes_inversos
 from gerador_inverso_invertido import gerar_cartoes_inversos_invertidos
 from conferidor import conferir_cartoes
+from padroes_ocultos import PadroesOcultosService
 
 # =========================================================
-# CACHE CORRETO (FUNÇÃO PURA – SEM self)
+# CACHE
 # =========================================================
 
 @st.cache_data(ttl=3600)
-def carregar_sorteios_cacheados(quantidade: int):
-    return baixar_ultimos_sorteios(quantidade)
+def carregar_sorteios_cacheados(qtd):
+    return baixar_ultimos_sorteios(qtd)
 
 # =========================================================
-# FUNÇÃO UTILITÁRIA – DATAFRAME
+# DATAFRAME
 # =========================================================
 
 def sorteios_para_dataframe(sorteios):
-    dados = []
-    for s in sorteios:
-        dados.append({
-            "concurso": s.get("concurso"),
-            "data": s.get("data"),
-            "dezenas": ",".join(s.get("dezenas", [])),
-            "mesSorte": s.get("mesSorte")
-        })
-    return pd.DataFrame(dados)
+    return pd.DataFrame([{
+        "concurso": s["concurso"],
+        "data": s["data"],
+        "dezenas": ",".join(s["dezenas"]),
+        "mesSorte": s.get("mesSorte")
+    } for s in sorteios])
 
 # =========================================================
-# SERVIÇO DE SORTEIOS
+# SERVICES
 # =========================================================
 
 class SorteiosService:
-    def __init__(self, quantidade: int):
-        self.quantidade = quantidade
-        self.sorteios = carregar_sorteios_cacheados(quantidade)
+    def __init__(self, qtd):
+        self.sorteios = carregar_sorteios_cacheados(qtd)
 
     @property
     def ultimo(self):
         return self.sorteios[0] if self.sorteios else None
-
-# =========================================================
-# ESTATÍSTICAS
-# =========================================================
 
 class EstatisticasService:
     def __init__(self, sorteios):
@@ -73,7 +67,7 @@ class EstatisticasService:
     def repeticoes(self): return repeticao_entre_concursos(self.sorteios)
 
 # =========================================================
-# ESTRATÉGIAS (STRATEGY PATTERN)
+# STRATEGY
 # =========================================================
 
 class Estrategia(ABC):
@@ -88,25 +82,82 @@ class EstrategiaOtimizada(Estrategia):
 
     def gerar(self, qtd, sorteios):
         return gerar_cartoes_otimizados_adaptativo(
-            qtd, sorteios,
-            desempenho_minimo=4.5,
-            max_tentativas=30000
+            qtd, sorteios, desempenho_minimo=4.5, max_tentativas=30000
         )
+
+class EstrategiaOculta(Estrategia):
+    nome = "Oculta (Blocos Estatísticos)"
+
+    def gerar(self, qtd, sorteios):
+        padroes = PadroesOcultosService(sorteios)
+        cartoes = []
+
+        while len(cartoes) < qtd:
+            dezenas = set(padroes.sortear_bloco_oculto())
+            while len(dezenas) < 7:
+                dezenas.add(random.randint(1, 31))
+
+            cartoes.append({
+                "dezenas": [str(d).zfill(2) for d in sorted(dezenas)],
+                "mesSorte": None
+            })
+
+        return cartoes
+
+class EstrategiaHibridaElite(Estrategia):
+    nome = "🔥 Híbrida Elite (Otimizada + Oculta)"
+
+    def gerar(self, qtd, sorteios):
+        padroes = PadroesOcultosService(sorteios)
+        cartoes_finais = []
+        tentativas = 0
+
+        while len(cartoes_finais) < qtd and tentativas < 50000:
+            tentativas += 1
+
+            semente = padroes.sugerir_dezenas()
+
+            candidatos = gerar_cartoes_otimizados_adaptativo(
+                qtd=3,
+                sorteios=sorteios,
+                desempenho_minimo=4.0,
+                max_tentativas=3000
+            )
+
+            for c in candidatos:
+                dezenas = set(map(int, c["dezenas"]))
+                dezenas.update(semente)
+
+                while len(dezenas) > 7:
+                    dezenas.remove(random.choice(tuple(dezenas)))
+                while len(dezenas) < 7:
+                    dezenas.add(random.randint(1, 31))
+
+                cartao = {
+                    "dezenas": [str(d).zfill(2) for d in sorted(dezenas)],
+                    "mesSorte": c.get("mesSorte")
+                }
+
+                if FiltroEstatistico.valido(cartao):
+                    cartoes_finais.append(cartao)
+
+                if len(cartoes_finais) >= qtd:
+                    break
+
+        return cartoes_finais
 
 class EstrategiaInversa(Estrategia):
     nome = "Inversa"
-
     def gerar(self, qtd, sorteios):
         return gerar_cartoes_inversos(qtd, sorteios)
 
 class EstrategiaInversaInvertida(Estrategia):
     nome = "Inversa Invertida"
-
     def gerar(self, qtd, sorteios):
         return gerar_cartoes_inversos_invertidos(qtd, sorteios)
 
 # =========================================================
-# FILTRO ESTATÍSTICO (ASSERTIVIDADE)
+# FILTRO
 # =========================================================
 
 class FiltroEstatistico:
@@ -116,27 +167,24 @@ class FiltroEstatistico:
         soma = sum(dezenas)
         pares = sum(1 for d in dezenas if d % 2 == 0)
 
-        if not (70 <= soma <= 95):
-            return False
-        if pares not in (3, 4):
-            return False
-
-        return True
+        return 70 <= soma <= 95 and pares in (3, 4)
 
 # =========================================================
-# GERADOR CENTRAL
+# GERADOR
 # =========================================================
 
 class GeradorService:
-    def __init__(self, estrategia: Estrategia):
+    def __init__(self, estrategia):
         self.estrategia = estrategia
 
     def gerar(self, qtd, sorteios):
-        cartoes = self.estrategia.gerar(qtd, sorteios)
-        return [c for c in cartoes if FiltroEstatistico.valido(c)]
+        return [
+            c for c in self.estrategia.gerar(qtd, sorteios)
+            if FiltroEstatistico.valido(c)
+        ]
 
 # =========================================================
-# AVALIAÇÃO E APRENDIZADO
+# AVALIAÇÃO / APRENDIZADO
 # =========================================================
 
 class AvaliadorService:
@@ -154,71 +202,32 @@ class AprendizadoService:
     def salvar(self, estrategia, score):
         dados = self._carregar()
         dados.setdefault(estrategia, []).append(score)
-        self.FILE.write_text(
-            json.dumps(dados, indent=2, ensure_ascii=False)
-        )
+        self.FILE.write_text(json.dumps(dados, indent=2, ensure_ascii=False))
 
     def _carregar(self):
-        if self.FILE.exists():
-            return json.loads(self.FILE.read_text())
-        return {}
+        return json.loads(self.FILE.read_text()) if self.FILE.exists() else {}
 
 # =========================================================
-# STREAMLIT APP
+# STREAMLIT
 # =========================================================
 
 class StreamlitApp:
     def run(self):
-        st.set_page_config(
-            page_title="Dia de Sorte Inteligente",
-            layout="wide"
-        )
+        st.set_page_config("Dia de Sorte Inteligente", layout="wide")
+        st.title("💡 Dia de Sorte Inteligente — Motor Elite")
 
-        st.title("💡 Dia de Sorte Inteligente")
-
-        qtd_concursos = st.slider(
-            "Quantos concursos deseja analisar?",
-            30, 300, 100
-        )
-
+        qtd_concursos = st.slider("Concursos analisados", 30, 300, 100)
         sorteios = SorteiosService(qtd_concursos)
 
-        # ---------- DOWNLOAD DOS CONCURSOS ----------
-        with st.expander("⬇️ Download dos concursos capturados"):
-            if sorteios.sorteios:
-                df = sorteios_para_dataframe(sorteios.sorteios)
-
-                st.download_button(
-                    "📥 Baixar concursos em CSV",
-                    df.to_csv(index=False),
-                    "concursos_dia_de_sorte.csv",
-                    "text/csv"
-                )
-
-                st.download_button(
-                    "📥 Baixar concursos em JSON",
-                    df.to_json(
-                        orient="records",
-                        force_ascii=False,
-                        indent=2
-                    ),
-                    "concursos_dia_de_sorte.json",
-                    "application/json"
-                )
-            else:
-                st.warning("Nenhum concurso disponível.")
-
-        # ---------- ÚLTIMO CONCURSO ----------
         if sorteios.ultimo:
             st.info(
-                f"Último concurso: {sorteios.ultimo['concurso']} | "
-                f"Dezenas: {', '.join(sorteios.ultimo['dezenas'])} | "
-                f"Mês da Sorte: {sorteios.ultimo.get('mesSorte')}"
+                f"Último concurso {sorteios.ultimo['concurso']} | "
+                f"{', '.join(sorteios.ultimo['dezenas'])} | "
+                f"Mês: {sorteios.ultimo.get('mesSorte')}"
             )
 
-        abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferir"])
+        abas = st.tabs(["🎯 Gerar", "📊 Análises", "✅ Conferir"])
 
-        # ---------- GERAR ----------
         with abas[0]:
             qtd = st.number_input("Quantidade de cartões", 1, 20, 5)
 
@@ -226,6 +235,8 @@ class StreamlitApp:
                 "Estratégia",
                 [
                     EstrategiaOtimizada(),
+                    EstrategiaOculta(),
+                    EstrategiaHibridaElite(),
                     EstrategiaInversa(),
                     EstrategiaInversaInvertida()
                 ],
@@ -233,41 +244,33 @@ class StreamlitApp:
             )
 
             if st.button("🎯 Gerar Cartões"):
-                gerador = GeradorService(estrategia)
-                cartoes = gerador.gerar(qtd, sorteios.sorteios)
-
+                cartoes = GeradorService(estrategia).gerar(
+                    qtd, sorteios.sorteios
+                )
                 st.session_state["cartoes"] = cartoes
                 st.session_state["estrategia"] = estrategia.nome
 
                 for i, c in enumerate(cartoes, 1):
-                    st.write(f"🃏 {i} → {c['dezenas']} | Mês: {c['mesSorte']}")
+                    st.write(f"🃏 {i} → {c['dezenas']}")
 
-        # ---------- ANÁLISES ----------
         with abas[1]:
             estat = EstatisticasService(sorteios.sorteios)
-
-            st.subheader("🔥 Frequência das Dezenas")
+            st.subheader("Frequência das Dezenas")
             st.table(estat.dezenas())
-
-            st.subheader("📅 Frequência dos Meses da Sorte")
+            st.subheader("Meses da Sorte")
             st.table(estat.meses())
 
-        # ---------- CONFERIR ----------
         with abas[2]:
-            if st.button("✅ Conferir Cartões"):
-                avaliador = AvaliadorService()
-                aprendizado = AprendizadoService()
-
-                cartoes = st.session_state.get("cartoes", [])
-                estrategia_nome = st.session_state.get("estrategia", "Desconhecida")
-
-                resultados = avaliador.avaliar(cartoes)
-                score = avaliador.score_medio(resultados)
-
-                aprendizado.salvar(estrategia_nome, score)
-
-                st.metric("🎯 Score médio", score)
-
+            if st.button("✅ Conferir"):
+                resultados = AvaliadorService().avaliar(
+                    st.session_state.get("cartoes", [])
+                )
+                score = AvaliadorService().score_medio(resultados)
+                AprendizadoService().salvar(
+                    st.session_state.get("estrategia", "Desconhecida"),
+                    score
+                )
+                st.metric("🎯 Score Médio", score)
                 for r in resultados:
                     st.write(r)
 
