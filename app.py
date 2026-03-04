@@ -1,6 +1,6 @@
 # =========================================================
 # DIA DE SORTE INTELIGENTE - ARQUIVO ÚNICO
-# Orientação a Objetos | Produção | Download de Concursos
+# OO | Produção | Cache corrigido | Download concursos
 # =========================================================
 
 import streamlit as st
@@ -21,9 +21,16 @@ from gerador_inverso import gerar_cartoes_inversos
 from gerador_inverso_invertido import gerar_cartoes_inversos_invertidos
 from conferidor import conferir_cartoes
 
+# =========================================================
+# CACHE CORRETO (FUNÇÃO PURA – SEM self)
+# =========================================================
+
+@st.cache_data(ttl=3600)
+def carregar_sorteios_cacheados(quantidade: int):
+    return baixar_ultimos_sorteios(quantidade)
 
 # =========================================================
-# FUNÇÃO UTILITÁRIA – CONVERSÃO PARA DATAFRAME
+# FUNÇÃO UTILITÁRIA – DATAFRAME
 # =========================================================
 
 def sorteios_para_dataframe(sorteios):
@@ -37,24 +44,18 @@ def sorteios_para_dataframe(sorteios):
         })
     return pd.DataFrame(dados)
 
-
 # =========================================================
-# SERVIÇO DE SORTEIOS (CACHE + DADOS)
+# SERVIÇO DE SORTEIOS
 # =========================================================
 
 class SorteiosService:
     def __init__(self, quantidade: int):
         self.quantidade = quantidade
-        self.sorteios = self._carregar()
-
-    @st.cache_data(ttl=3600)
-    def _carregar(self):
-        return baixar_ultimos_sorteios(self.quantidade)
+        self.sorteios = carregar_sorteios_cacheados(quantidade)
 
     @property
     def ultimo(self):
         return self.sorteios[0] if self.sorteios else None
-
 
 # =========================================================
 # ESTATÍSTICAS
@@ -71,7 +72,6 @@ class EstatisticasService:
     def sequencias(self): return sequencias_consecutivas(self.sorteios)
     def repeticoes(self): return repeticao_entre_concursos(self.sorteios)
 
-
 # =========================================================
 # ESTRATÉGIAS (STRATEGY PATTERN)
 # =========================================================
@@ -83,15 +83,15 @@ class Estrategia(ABC):
     def gerar(self, qtd, sorteios):
         pass
 
-
 class EstrategiaOtimizada(Estrategia):
     nome = "Otimizada"
 
     def gerar(self, qtd, sorteios):
         return gerar_cartoes_otimizados_adaptativo(
-            qtd, sorteios, desempenho_minimo=4.5, max_tentativas=30000
+            qtd, sorteios,
+            desempenho_minimo=4.5,
+            max_tentativas=30000
         )
-
 
 class EstrategiaInversa(Estrategia):
     nome = "Inversa"
@@ -99,16 +99,14 @@ class EstrategiaInversa(Estrategia):
     def gerar(self, qtd, sorteios):
         return gerar_cartoes_inversos(qtd, sorteios)
 
-
 class EstrategiaInversaInvertida(Estrategia):
     nome = "Inversa Invertida"
 
     def gerar(self, qtd, sorteios):
         return gerar_cartoes_inversos_invertidos(qtd, sorteios)
 
-
 # =========================================================
-# FILTROS INTELIGENTES (ASSERTIVIDADE)
+# FILTRO ESTATÍSTICO (ASSERTIVIDADE)
 # =========================================================
 
 class FiltroEstatistico:
@@ -125,7 +123,6 @@ class FiltroEstatistico:
 
         return True
 
-
 # =========================================================
 # GERADOR CENTRAL
 # =========================================================
@@ -138,9 +135,8 @@ class GeradorService:
         cartoes = self.estrategia.gerar(qtd, sorteios)
         return [c for c in cartoes if FiltroEstatistico.valido(c)]
 
-
 # =========================================================
-# AVALIAÇÃO + AUTO-APRENDIZADO
+# AVALIAÇÃO E APRENDIZADO
 # =========================================================
 
 class AvaliadorService:
@@ -152,20 +148,20 @@ class AvaliadorService:
             sum(r["acertos"] for r in resultados) / len(resultados), 2
         ) if resultados else 0
 
-
 class AprendizadoService:
     FILE = Path("historico_aprendizado.json")
 
     def salvar(self, estrategia, score):
         dados = self._carregar()
         dados.setdefault(estrategia, []).append(score)
-        self.FILE.write_text(json.dumps(dados, indent=2, ensure_ascii=False))
+        self.FILE.write_text(
+            json.dumps(dados, indent=2, ensure_ascii=False)
+        )
 
     def _carregar(self):
         if self.FILE.exists():
             return json.loads(self.FILE.read_text())
         return {}
-
 
 # =========================================================
 # STREAMLIT APP
@@ -193,24 +189,24 @@ class StreamlitApp:
                 df = sorteios_para_dataframe(sorteios.sorteios)
 
                 st.download_button(
-                    label="📥 Baixar concursos em CSV",
-                    data=df.to_csv(index=False),
-                    file_name="concursos_dia_de_sorte.csv",
-                    mime="text/csv"
+                    "📥 Baixar concursos em CSV",
+                    df.to_csv(index=False),
+                    "concursos_dia_de_sorte.csv",
+                    "text/csv"
                 )
 
                 st.download_button(
-                    label="📥 Baixar concursos em JSON",
-                    data=df.to_json(
+                    "📥 Baixar concursos em JSON",
+                    df.to_json(
                         orient="records",
                         force_ascii=False,
                         indent=2
                     ),
-                    file_name="concursos_dia_de_sorte.json",
-                    mime="application/json"
+                    "concursos_dia_de_sorte.json",
+                    "application/json"
                 )
             else:
-                st.warning("Nenhum concurso disponível para download.")
+                st.warning("Nenhum concurso disponível.")
 
         # ---------- ÚLTIMO CONCURSO ----------
         if sorteios.ultimo:
@@ -222,7 +218,7 @@ class StreamlitApp:
 
         abas = st.tabs(["🎯 Gerar Cartões", "📊 Análises", "✅ Conferir"])
 
-        # ---------- ABA GERAR ----------
+        # ---------- GERAR ----------
         with abas[0]:
             qtd = st.number_input("Quantidade de cartões", 1, 20, 5)
 
@@ -246,7 +242,7 @@ class StreamlitApp:
                 for i, c in enumerate(cartoes, 1):
                     st.write(f"🃏 {i} → {c['dezenas']} | Mês: {c['mesSorte']}")
 
-        # ---------- ABA ANÁLISES ----------
+        # ---------- ANÁLISES ----------
         with abas[1]:
             estat = EstatisticasService(sorteios.sorteios)
 
@@ -256,7 +252,7 @@ class StreamlitApp:
             st.subheader("📅 Frequência dos Meses da Sorte")
             st.table(estat.meses())
 
-        # ---------- ABA CONFERIR ----------
+        # ---------- CONFERIR ----------
         with abas[2]:
             if st.button("✅ Conferir Cartões"):
                 avaliador = AvaliadorService()
@@ -274,7 +270,6 @@ class StreamlitApp:
 
                 for r in resultados:
                     st.write(r)
-
 
 # =========================================================
 # EXECUÇÃO
