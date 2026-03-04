@@ -34,6 +34,132 @@ def carregar_sorteios_cacheados(qtd):
     return baixar_ultimos_sorteios(qtd)
 
 # =========================================================
+# SERVIÇO DE ESTATÍSTICAS
+# =========================================================
+
+class EstatisticasService:
+    def __init__(self, sorteios):
+        self.sorteios = sorteios
+
+    def dezenas(self): 
+        return frequencia_dezenas(self.sorteios)
+    def meses(self): 
+        return frequencia_meses(self.sorteios)
+    def pares(self): 
+        return pares_impares(self.sorteios)
+    def soma(self): 
+        return soma_dezenas(self.sorteios)
+    def sequencias(self): 
+        return sequencias_consecutivas(self.sorteios)
+    def repeticoes(self): 
+        return repeticao_entre_concursos(self.sorteios)
+
+# =========================================================
+# MOTOR OCULTO TOP-31
+# =========================================================
+
+class FrequenciaTop31Service:
+    def __init__(self, sorteios, janela=30):
+        self.sorteios = sorteios[:janela]
+        self.freq = self._calcular()
+
+    def _calcular(self):
+        cont = {i: 0 for i in range(1, 32)}
+        for s in self.sorteios:
+            for d in map(int, s["dezenas"]):
+                cont[d] += 1
+        return cont
+
+    def ranking(self):
+        return sorted(self.freq.items(), key=lambda x: x[1], reverse=True)
+
+    def zonas(self):
+        r = self.ranking()
+        return {
+            "alta": [n for n, _ in r[:10]],
+            "media": [n for n, _ in r[10:21]],
+            "baixa": [n for n, _ in r[21:]]
+        }
+
+    def pesos(self):
+        return list(self.freq.keys()), list(self.freq.values())
+
+class MotorOcultoTop31:
+    def __init__(self, sorteios):
+        self.freq = FrequenciaTop31Service(sorteios)
+        self.zonas = self.freq.zonas()
+        self.numeros, self.pesos = self.freq.pesos()
+
+    def gerar_cartao(self):
+        cartao = set()
+        cartao.update(random.sample(self.zonas["alta"], 3))
+        cartao.update(random.sample(self.zonas["media"], 2))
+        cartao.update(random.sample(self.zonas["baixa"], 2))
+
+        while len(cartao) < 7:
+            cartao.add(
+                random.choices(self.numeros, weights=self.pesos, k=1)[0]
+            )
+
+        return sorted(cartao)
+
+# =========================================================
+# FILTRO ESTATÍSTICO
+# =========================================================
+
+class FiltroEstatistico:
+    @staticmethod
+    def valido(dezenas):
+        soma = sum(dezenas)
+        pares = sum(1 for d in dezenas if d % 2 == 0)
+        return 70 <= soma <= 95 and pares in (3, 4)
+
+# =========================================================
+# STRATEGY PATTERN (DEFINIÇÃO DA CLASSE BASE)
+# =========================================================
+
+class Estrategia(ABC):
+    nome: str
+
+    @abstractmethod
+    def gerar(self, qtd, sorteios):
+        pass
+
+class EstrategiaEliteHibrida(Estrategia):
+    nome = "Elite Híbrida (Top-31 Oculta)"
+
+    def gerar(self, qtd, sorteios):
+        motor = MotorOcultoTop31(sorteios)
+        cartoes = []
+
+        while len(cartoes) < qtd:
+            dezenas = motor.gerar_cartao()
+            if FiltroEstatistico.valido(dezenas):
+                cartoes.append({
+                    "dezenas": dezenas,
+                    "mesSorte": random.choice([s["mesSorte"] for s in sorteios])
+                })
+        return cartoes
+
+class EstrategiaOtimizada(Estrategia):
+    nome = "Otimizada Clássica"
+
+    def gerar(self, qtd, sorteios):
+        return gerar_cartoes_otimizados_adaptativo(qtd, sorteios)
+
+class EstrategiaInversa(Estrategia):
+    nome = "Inversa"
+
+    def gerar(self, qtd, sorteios):
+        return gerar_cartoes_inversos(qtd, sorteios)
+
+class EstrategiaInversaInvertida(Estrategia):
+    nome = "Inversa Invertida"
+
+    def gerar(self, qtd, sorteios):
+        return gerar_cartoes_inversos_invertidos(qtd, sorteios)
+
+# =========================================================
 # SERVIÇO DE ESTATÍSTICAS AVANÇADAS
 # =========================================================
 
@@ -265,7 +391,10 @@ class FrequenciaTop31Aprimorado:
         # Completar com a estratégia principal
         while len(cartao) < 7:
             candidato = self.gerar_com_garantia_4mais()
-            cartao.update(candidato[:7 - len(cartao)])
+            # Pegar apenas números que ainda não estão no cartão
+            for num in candidato:
+                if len(cartao) < 7 and num not in cartao:
+                    cartao.add(num)
         
         return sorted(list(cartao))[:7]
 
@@ -275,7 +404,7 @@ class FrequenciaTop31Aprimorado:
 
 class FiltrosAprimorados:
     @staticmethod
-    def valido_avancado(dezenas, estatisticas):
+    def valido_avancado(dezenas):
         """
         Validação mais rigorosa baseada em múltiplos critérios
         """
@@ -323,7 +452,6 @@ class EstrategiaEliteHibrida4Plus(Estrategia):
     
     def gerar(self, qtd, sorteios):
         motor_aprimorado = FrequenciaTop31Aprimorado(sorteios)
-        estatisticas = EstatisticasAvancadas(sorteios)
         cartoes = []
         
         # Analisar meses mais promissores
@@ -340,17 +468,21 @@ class EstrategiaEliteHibrida4Plus(Estrategia):
             if random.random() < 0.7:  # 70% das vezes usa estratégia principal
                 dezenas = motor_aprimorado.gerar_com_garantia_4mais()
             else:  # 30% adaptado ao mês
-                mes_escolhido = random.choice(meses_top)
-                dezenas = motor_aprimorado.gerar_com_adaptacao_mes(mes_escolhido)
+                if meses_top:  # Verificar se há meses disponíveis
+                    mes_escolhido = random.choice(meses_top)
+                    dezenas = motor_aprimorado.gerar_com_adaptacao_mes(mes_escolhido)
+                else:
+                    dezenas = motor_aprimorado.gerar_com_garantia_4mais()
             
             # Validar com filtros aprimorados
-            if FiltrosAprimorados.valido_avancado(dezenas, estatisticas):
+            if FiltrosAprimorados.valido_avancado(dezenas):
                 # Escolher mês da sorte baseado em frequência
-                mes_sorte = random.choices(
-                    list(frequencia_meses.keys()),
-                    weights=list(frequencia_meses.values()),
-                    k=1
-                )[0]
+                if frequencia_meses:
+                    meses = list(frequencia_meses.keys())
+                    pesos = list(frequencia_meses.values())
+                    mes_sorte = random.choices(meses, weights=pesos, k=1)[0]
+                else:
+                    mes_sorte = random.randint(1, 12)
                 
                 cartoes.append({
                     "dezenas": dezenas,
@@ -533,109 +665,123 @@ class StreamlitAppAprimorado:
         with abas[1]:
             st.subheader("🔮 Análise Preditiva para Próximo Sorteio")
             
-            preditor = AnalisePreditiva(sorteios)
-            previsoes = preditor.prever_proximos_numeros()
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("### ⭐ Top 10 números mais prováveis")
-                dados_previsao = []
-                for i, (num, score) in enumerate(previsoes[:10], 1):
-                    dados_previsao.append({
-                        "Ranking": i,
-                        "Número": num,
-                        "Pontuação": round(score, 2)
+            if sorteios:
+                preditor = AnalisePreditiva(sorteios)
+                previsoes = preditor.prever_proximos_numeros()
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("### ⭐ Top 10 números mais prováveis")
+                    dados_previsao = []
+                    for i, (num, score) in enumerate(previsoes[:10], 1):
+                        dados_previsao.append({
+                            "Ranking": i,
+                            "Número": num,
+                            "Pontuação": round(score, 2)
+                        })
+                    
+                    df_previsao = pd.DataFrame(dados_previsao)
+                    st.dataframe(df_previsao, use_container_width=True, hide_index=True)
+                
+                with col2:
+                    st.markdown("### 📊 Distribuição de probabilidade")
+                    
+                    # Gráfico de barras simplificado
+                    nums = [n for n, _ in previsoes[:15]]
+                    scores = [s for _, s in previsoes[:15]]
+                    
+                    chart_data = pd.DataFrame({
+                        "Número": nums,
+                        "Probabilidade": scores
                     })
-                
-                df_previsao = pd.DataFrame(dados_previsao)
-                st.dataframe(df_previsao, use_container_width=True, hide_index=True)
-            
-            with col2:
-                st.markdown("### 📊 Distribuição de probabilidade")
-                
-                # Gráfico de barras simplificado
-                nums = [n for n, _ in previsoes[:15]]
-                scores = [s for _, s in previsoes[:15]]
-                
-                chart_data = pd.DataFrame({
-                    "Número": nums,
-                    "Probabilidade": scores
-                })
-                
-                st.bar_chart(chart_data.set_index("Número"))
+                    
+                    st.bar_chart(chart_data.set_index("Número"))
 
         # ---------- ESTATÍSTICAS AVANÇADAS ----------
         with abas[2]:
             st.subheader("🔬 Análise Estatística Avançada")
             
-            estats_avancadas = EstatisticasAvancadas(sorteios)
-            
-            tabs_estats = st.tabs([
-                "Tendências Temporais", 
-                "Pares Fortes", 
-                "Trios Fortes",
-                "Mês da Sorte"
-            ])
-            
-            with tabs_estats[0]:
-                tendencias = estats_avancadas.analisar_tendencias_temporais()
+            if sorteios:
+                estats_avancadas = EstatisticasAvancadas(sorteios)
                 
-                if "janela_10" in tendencias:
-                    st.markdown("#### 📈 Números em alta (últimos 10 sorteios)")
-                    top_crescente = tendencias["janela_10"].get("top_crescente", [])[:8]
+                tabs_estats = st.tabs([
+                    "Tendências Temporais", 
+                    "Pares Fortes", 
+                    "Trios Fortes",
+                    "Mês da Sorte"
+                ])
+                
+                with tabs_estats[0]:
+                    tendencias = estats_avancadas.analisar_tendencias_temporais()
                     
-                    dados_tendencia = []
-                    for num, mom in top_crescente:
-                        dados_tendencia.append({
-                            "Número": num,
-                            "Momentum": f"{mom*100:.1f}%"
+                    if "janela_10" in tendencias:
+                        st.markdown("#### 📈 Números em alta (últimos 10 sorteios)")
+                        top_crescente = tendencias["janela_10"].get("top_crescente", [])[:8]
+                        
+                        dados_tendencia = []
+                        for num, mom in top_crescente:
+                            dados_tendencia.append({
+                                "Número": num,
+                                "Momentum": f"{mom*100:.1f}%"
+                            })
+                        
+                        if dados_tendencia:
+                            st.dataframe(pd.DataFrame(dados_tendencia), hide_index=True)
+                        else:
+                            st.info("Dados insuficientes para análise de tendências")
+                
+                with tabs_estats[1]:
+                    pares = estats_avancadas.identificar_pares_fortes()
+                    dados_pares = []
+                    
+                    for (n1, n2), prob in list(pares.items())[:15]:
+                        dados_pares.append({
+                            "Par": f"{n1}-{n2}",
+                            "Probabilidade": f"{prob*100:.1f}%"
                         })
                     
-                    st.dataframe(pd.DataFrame(dados_tendencia), hide_index=True)
-            
-            with tabs_estats[1]:
-                pares = estats_avancadas.identificar_pares_fortes()
-                dados_pares = []
+                    if dados_pares:
+                        st.dataframe(pd.DataFrame(dados_pares), hide_index=True)
+                    else:
+                        st.info("Dados insuficientes para análise de pares")
                 
-                for (n1, n2), prob in list(pares.items())[:15]:
-                    dados_pares.append({
-                        "Par": f"{n1}-{n2}",
-                        "Probabilidade": f"{prob*100:.1f}%"
-                    })
-                
-                st.dataframe(pd.DataFrame(dados_pares), hide_index=True)
-            
-            with tabs_estats[2]:
-                trios = estats_avancadas.identificar_trios_fortes()
-                dados_trios = []
-                
-                for (n1, n2, n3), prob in list(trios.items())[:10]:
-                    dados_trios.append({
-                        "Trio": f"{n1}-{n2}-{n3}",
-                        "Probabilidade": f"{prob*100:.1f}%"
-                    })
-                
-                st.dataframe(pd.DataFrame(dados_trios), hide_index=True)
-            
-            with tabs_estats[3]:
-                relacao_mes = estats_avancadas.analisar_padroes_mes_sorte()
-                
-                mes_selecionado = st.selectbox(
-                    "Selecione o mês",
-                    range(1, 13),
-                    format_func=lambda x: f"Mês {x}"
-                )
-                
-                if mes_selecionado in relacao_mes:
-                    dados_mes = relacao_mes[mes_selecionado]
-                    st.write(f"Total de sorteios neste mês: {dados_mes['total_sorteios']}")
+                with tabs_estats[2]:
+                    trios = estats_avancadas.identificar_trios_fortes()
+                    dados_trios = []
                     
-                    df_mes = pd.DataFrame(
-                        list(dados_mes['frequencia'].items()),
-                        columns=["Número", "Frequência"]
-                    )
-                    st.dataframe(df_mes, hide_index=True)
+                    for (n1, n2, n3), prob in list(trios.items())[:10]:
+                        dados_trios.append({
+                            "Trio": f"{n1}-{n2}-{n3}",
+                            "Probabilidade": f"{prob*100:.1f}%"
+                        })
+                    
+                    if dados_trios:
+                        st.dataframe(pd.DataFrame(dados_trios), hide_index=True)
+                    else:
+                        st.info("Dados insuficientes para análise de trios")
+                
+                with tabs_estats[3]:
+                    relacao_mes = estats_avancadas.analisar_padroes_mes_sorte()
+                    
+                    if relacao_mes:
+                        mes_selecionado = st.selectbox(
+                            "Selecione o mês",
+                            range(1, 13),
+                            format_func=lambda x: f"Mês {x}"
+                        )
+                        
+                        if mes_selecionado in relacao_mes:
+                            dados_mes = relacao_mes[mes_selecionado]
+                            st.write(f"Total de sorteios neste mês: {dados_mes['total_sorteios']}")
+                            
+                            df_mes = pd.DataFrame(
+                                list(dados_mes['frequencia'].items()),
+                                columns=["Número", "Frequência"]
+                            )
+                            st.dataframe(df_mes, hide_index=True)
+                    else:
+                        st.info("Dados insuficientes para análise por mês")
 
         # ---------- CONFERIR RESULTADOS ----------
         with abas[3]:
@@ -660,4 +806,13 @@ class StreamlitAppAprimorado:
 # =========================================================
 
 if __name__ == "__main__":
-    StreamlitAppAprimorado().run()
+    # Verificar se devemos usar a versão original ou a aprimorada
+    if 'versao_aprimorada' not in st.session_state:
+        st.session_state.versao_aprimorada = True
+    
+    if st.session_state.versao_aprimorada:
+        StreamlitAppAprimorado().run()
+    else:
+        # Manter compatibilidade com versão original
+        from app_original import StreamlitApp as StreamlitAppOriginal
+        StreamlitAppOriginal().run()
